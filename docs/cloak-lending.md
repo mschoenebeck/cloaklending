@@ -223,13 +223,13 @@ New VIGOR is issued to Alice
 
 The basic borrow-time requirement is:
 
-\[
+```math
 \text{crypto collateral value}
 \ge
 \text{new VIGOR debt}
 \times
 \text{required collateral ratio}
-\]
+```
 
 If Alice later repays, she sends VIGOR back to the contract. The debt is reduced and the repaid VIGOR is retired.
 
@@ -251,13 +251,13 @@ Borrowed crypto leaves active insurer inventory
 
 The basic borrow-time requirement is:
 
-\[
+```math
 \text{VIGOR collateral}
 \ge
 \text{new crypto debt value}
 \times
 \text{required collateral ratio}
-\]
+```
 
 Bob does not receive newly minted crypto. The borrowed asset must already exist inside active insurer capital and be available after subtracting currently lent amounts.
 
@@ -348,7 +348,7 @@ Crypto borrowing is different.
 
 The contract does not create BTC, EOS, or another borrowed asset. It tracks live active-insurer inventory:
 
-\[
+```math
 \text{available}_j
 =
 \max(
@@ -357,9 +357,9 @@ The contract does not create BTC, EOS, or another borrowed asset. It tracks live
 \text{live lent}_j,
 0
 )
-\]
+```
 
-for token \(j\).
+for token $j$.
 
 That creates a hard limit: a user cannot borrow more of a token than active insurers have made available.
 
@@ -397,9 +397,9 @@ Four separate ideas are often mixed together in stable-token discussions. CLOAK 
 
 The economic target is approximately:
 
-\[
+```math
 1\ \text{VIGOR} \approx 1\ \text{USD}
-\]
+```
 
 This is the public meaning of “low-volatility token” or “stable token.”
 
@@ -407,9 +407,9 @@ This is the public meaning of “low-volatility token” or “stable token.”
 
 Inside CLOAK Lending:
 
-\[
+```math
 1\ \text{VIGOR} = 1\ \text{VIGOR}
-\]
+```
 
 VIGOR is the numeraire. Other supported assets are valued in VIGOR terms, and VIGOR itself does not require an oracle row.
 
@@ -433,7 +433,7 @@ But solvency and market price are not the same thing. A token can be economicall
 
 ### 5.4 Supply expansion above the target
 
-Suppose VIGOR trades at **$1.05**.
+Suppose VIGOR trades at **\$1.05**.
 
 A market participant may see an opportunity:
 
@@ -463,7 +463,7 @@ The trade has limits. Expansion is constrained by:
 
 ### 5.5 Supply contraction and demand below the target
 
-Suppose VIGOR trades at **$0.95**.
+Suppose VIGOR trades at **\$0.95**.
 
 A stable borrower with 10,000 VIGOR of debt can buy VIGOR at a discount, repay 10,000 units of nominal debt, and cause that VIGOR to be retired.
 
@@ -568,7 +568,7 @@ What matters is:
 - enough market-maker capital to handle issuance and repayment flows;
 - resistance to manipulation.
 
-Imagine that the VIGOR pair has only $20,000 of usable liquidity. A borrower selling 100,000 newly issued VIGOR could move the price sharply even if the protocol is perfectly solvent.
+Imagine that the VIGOR pair has only \$20,000 of usable liquidity. A borrower selling 100,000 newly issued VIGOR could move the price sharply even if the protocol is perfectly solvent.
 
 The reverse is also true. During a depeg, borrowers may want to buy VIGOR to repay, but shallow liquidity can prevent the demand from translating into smooth price convergence.
 
@@ -591,7 +591,7 @@ CLOAK Lending consumes oracle prices denominated in VIGOR. This makes the oracle
 
 A production specification must choose—and publicly document—what “price in VIGOR” means when VIGOR is not worth one dollar. Two broad policies are possible:
 
-1. **Market-relative pricing.** External assets are converted at their actual market exchange rate against VIGOR. If VIGOR falls to $0.80, a $60,000 BTC is approximately 75,000 VIGOR. This keeps real relative values aligned, but the protocol’s supposedly low-volatility numeraire now moves through every collateral and debt calculation.
+1. **Market-relative pricing.** External assets are converted at their actual market exchange rate against VIGOR. If VIGOR falls to \$0.80, a \$60,000 BTC is approximately 75,000 VIGOR. This keeps real relative values aligned, but the protocol’s supposedly low-volatility numeraire now moves through every collateral and debt calculation.
 2. **Target-relative pricing.** External assets continue to use their USD price as though one VIGOR were one dollar. This preserves target-based accounting, but can misstate real economic collateralization. Below target it overvalues VIGOR posted against crypto debt; above target it understates the real dollar burden of VIGOR debt.
 
 Neither policy is a harmless implementation detail. The first imports the depeg into all VIGOR-denominated prices. The second can make one debt side look safer than it is in real market value.
@@ -622,18 +622,18 @@ Saver receives VIG in the `vigfees` balance
 
 Let:
 
-- \(F_S\) be the amount of VIG allocated to Savings for an epoch;
-- \(S_i\) be saver \(i\)’s VIGOR balance;
-- \(S\) be total VIGOR Savings.
+- $F_S$ be the amount of VIG allocated to Savings for an epoch;
+- $S_i$ be saver $i$’s VIGOR balance;
+- $S$ be total VIGOR Savings.
 
 Ignoring integer rounding for the moment:
 
-\[
+```math
 \text{VIG reward}_i
 =
 F_S
 \frac{S_i}{S}
-\]
+```
 
 #### Example
 
@@ -643,9 +643,9 @@ She owns 10% of the pool.
 
 If the epoch allocates 500 VIG to Savings:
 
-\[
+```math
 500 \times 10\% = 50\ \text{VIG}
-\]
+```
 
 Maria receives approximately 50 VIG in her `vigfees` balance.
 
@@ -709,13 +709,13 @@ Assume:
 - total Savings: 100,000 VIGOR;
 - Maria’s Savings: 10,000 VIGOR;
 - reserve debt requiring backstop: 20,000 VIGOR;
-- matching reserve collateral being socialized: $22,000 worth of crypto.
+- matching reserve collateral being socialized: \$22,000 worth of crypto.
 
 Maria owns 10% of Savings, so she would absorb approximately:
 
-\[
+```math
 20{,}000 \times 10\% = 2{,}000\ \text{VIGOR}
-\]
+```
 
 and receive approximately 10% of the collateral slice.
 
@@ -762,9 +762,9 @@ Only active normal insurer inventory counts toward live crypto borrowing.
 
 If active insurers collectively hold 10,000 EOS and 6,000 EOS are already lent:
 
-\[
+```math
 \text{available EOS} = 10{,}000 - 6{,}000 = 4{,}000
-\]
+```
 
 A new borrower cannot draw more than that live amount.
 
@@ -849,45 +849,45 @@ The central intuition is:
 
 ### 9.1 Asset valuation
 
-For a non-VIGOR asset \(j\):
+For a non-VIGOR asset $j$:
 
-\[
+```math
 V_j = Q_j P_j
-\]
+```
 
 where:
 
-- \(Q_j\) is the token quantity;
-- \(P_j\) is its oracle price in VIGOR;
-- \(V_j\) is its VIGOR-denominated value.
+- $Q_j$ is the token quantity;
+- $P_j$ is its oracle price in VIGOR;
+- $V_j$ is its VIGOR-denominated value.
 
 For a bucket of assets:
 
-\[
+```math
 V_{\text{bucket}}
 =
 \sum_j Q_j P_j
-\]
+```
 
 VIGOR is already the numeraire, so its value is its amount.
 
 ### 9.2 Portfolio volatility
 
-For a portfolio with value weights \(w_i\), volatilities \(\sigma_i\), and correlations \(\rho_{ij}\), the protocol follows the familiar portfolio-variance structure:
+For a portfolio with value weights $w_i$, volatilities $\sigma_i$, and correlations $\rho_{ij}$, the protocol follows the familiar portfolio-variance structure:
 
-\[
+```math
 \sigma_p^2
 =
 \sum_i w_i^2\sigma_i^2
 +
 2\sum_{i<j}w_iw_j\sigma_i\sigma_j\rho_{ij}
-\]
+```
 
 and:
 
-\[
+```math
 \sigma_p = \sqrt{\sigma_p^2}
-\]
+```
 
 This is why two accounts holding the same total collateral value may receive different pricing.
 
@@ -907,22 +907,22 @@ A missing correlation entry currently defaults to zero. That keeps calculation d
 
 The protocol includes normal-distribution helpers and a conditional-value-at-risk style tail multiplier.
 
-For tail confidence \(\alpha\):
+For tail confidence $\alpha$:
 
-\[
+```math
 z_\alpha = \Phi^{-1}(\alpha)
-\]
+```
 
-\[
+```math
 m_{\text{tail}}
 =
 \frac{\phi(z_\alpha)}{1-\alpha}
-\]
+```
 
 where:
 
-- \(\Phi^{-1}\) is the inverse standard normal CDF;
-- \(\phi\) is the standard normal density.
+- $\Phi^{-1}$ is the inverse standard normal CDF;
+- $\phi$ is the standard normal density.
 
 The multiplier is applied to portfolio volatility to estimate a stressed downside move for collateral and a stressed upside move for borrowed crypto.
 
@@ -934,19 +934,19 @@ For a VIGOR borrower, the dangerous direction is down: crypto collateral loses v
 
 The contract constructs a stressed collateral loss, scales it by global stable-side conditions, and estimates a shortfall payoff:
 
-\[
+```math
 \text{payoff}_{stable}
 =
 \max(
 D_s - C_{\text{stressed}},
 0
 )
-\]
+```
 
 where:
 
-- \(D_s\) is VIGOR debt;
-- \(C_{\text{stressed}}\) is stressed crypto collateral value.
+- $D_s$ is VIGOR debt;
+- $C_{\text{stressed}}$ is stressed crypto collateral value.
 
 The user’s stable risk price is derived from:
 
@@ -957,7 +957,7 @@ The user’s stable risk price is derived from:
 
 At a high level:
 
-\[
+```math
 r_s
 \approx
 \frac{
@@ -965,7 +965,7 @@ r_s
 }{
 \text{VIGOR debt}
 }
-\]
+```
 
 clamped between the configured floor and cap.
 
@@ -977,25 +977,25 @@ For a crypto borrower, the dangerous direction is up: the borrowed asset rises r
 
 The stressed payoff is conceptually:
 
-\[
+```math
 \text{payoff}_{crypto}
 =
 \max(
 D_{c,\text{stressed}} - C_s,
 0
 )
-\]
+```
 
 where:
 
-- \(D_{c,\text{stressed}}\) is stressed crypto debt value;
-- \(C_s\) is VIGOR collateral.
+- $D_{c,\text{stressed}}$ is stressed crypto debt value;
+- $C_s$ is VIGOR collateral.
 
 Crypto pricing also includes liquidity scarcity.
 
-For borrower \(u\), a simplified representation of the liquidity component is:
+For borrower $u$, a simplified representation of the liquidity component is:
 
-\[
+```math
 L_u
 =
 \sum_j
@@ -1003,9 +1003,9 @@ L_u
 \frac{V_{u,j}}{V_{u,\text{crypto debt}}}
 \right)
 U_j
-\]
+```
 
-where \(U_j\) is the token’s utilization measure.
+where $U_j$ is the token’s utilization measure.
 
 The more the borrower depends on scarce, heavily utilized tokens, the larger the liquidity-risk adjustment.
 
@@ -1032,29 +1032,29 @@ That is closer to traditional risk-based credit pricing than a utilization curve
 
 The protocol measures how much worse stressed system insurance would look if a particular insurer’s capital were removed.
 
-For insurer \(i\), the stable-side contribution is conceptually:
+For insurer $i$, the stable-side contribution is conceptually:
 
-\[
+```math
 c_i
 =
 \max(
 S - S_{-i},
 0
 )
-\]
+```
 
 where:
 
-- \(S\) is the stressed value of global insurance;
-- \(S_{-i}\) is stressed insurance after excluding insurer \(i\)’s effective contribution.
+- $S$ is the stressed value of global insurance;
+- $S_{-i}$ is stressed insurance after excluding insurer $i$’s effective contribution.
 
 Normalized across the system:
 
-\[
+```math
 pcts_i
 =
 \frac{c_i}{\sum_k c_k}
-\]
+```
 
 The crypto-side equivalent produces `l_pcts`.
 
@@ -1075,63 +1075,63 @@ The economic fee is calculated in VIGOR-value terms. Payment is made in VIG, the
 
 ### 10.1 Fee accrual
 
-For debt value \(D\), annualized risk price \(r\), and epoch year fraction \(T\):
+For debt value $D$, annualized risk price $r$, and epoch year fraction $T$:
 
-\[
+```math
 F
 =
 D\left((1+r)^T - 1\right)
-\]
+```
 
 The implementation evaluates the power deterministically as:
 
-\[
+```math
 (1+r)^T
 =
 \exp\left(T\ln(1+r)\right)
-\]
+```
 
 For the stable side:
 
-\[
+```math
 F_s
 =
 D_s\left((1+\texttt{tesprice})^T - 1\right)
-\]
+```
 
 For the crypto side:
 
-\[
+```math
 F_c
 =
 V_c\left((1+\texttt{l\_tesprice})^T - 1\right)
-\]
+```
 
 The year convention used by the implementation is:
 
-\[
+```math
 T
 =
 \frac{\text{epoch seconds}}
 {360 \times 24 \times 60 \times 60}
-\]
+```
 
 ### 10.2 Conversion into VIG
 
 Let:
 
-- \(F\) be the fee value in VIGOR;
-- \(P_{VIG}\) be the oracle price of one VIG in VIGOR.
+- $F$ be the fee value in VIGOR;
+- $P_{VIG}$ be the oracle price of one VIG in VIGOR.
 
 Then the required VIG amount is:
 
-\[
+```math
 \text{VIG due}
 =
 \left\lceil
 \frac{F}{P_{VIG}}
 \right\rceil
-\]
+```
 
 after normalization to VIG precision.
 
@@ -1210,41 +1210,41 @@ The protocol calls this a **bailout**.
 
 A stable-debt position is insolvent when:
 
-\[
+```math
 C_c \times 10{,}000
 <
 D_s \times B_s
-\]
+```
 
 where:
 
-- \(C_c\) is crypto collateral value;
-- \(D_s\) is VIGOR debt;
-- \(B_s\) is `bailout_cr_bps`.
+- $C_c$ is crypto collateral value;
+- $D_s$ is VIGOR debt;
+- $B_s$ is `bailout_cr_bps`.
 
 Equivalently:
 
-\[
+```math
 \frac{C_c}{D_s}
 <
 \frac{B_s}{10{,}000}
-\]
+```
 
 #### Crypto side
 
 A crypto-debt position is insolvent when:
 
-\[
+```math
 C_s \times 10{,}000
 <
 D_c \times B_c
-\]
+```
 
 where:
 
-- \(C_s\) is VIGOR collateral;
-- \(D_c\) is crypto debt value;
-- \(B_c\) is `bailoutup_cr_bps`.
+- $C_s$ is VIGOR collateral;
+- $D_c$ is crypto debt value;
+- $B_c$ is `bailoutup_cr_bps`.
 
 The comparison is strict. A position exactly at the configured ratio is not below it.
 
@@ -1295,23 +1295,23 @@ The repricing barrier matters because stable-side loss absorption changes insure
 
 Assume Alice owes 10,000 VIGOR and has distressed crypto collateral worth 11,000 VIGOR.
 
-The protocol builds a set of active normal insurers and assigns each a weight \(w_i\). Stable bailout normally uses `pcts`; crypto bailout normally uses `l_pcts`. If the relevant denominator is unusable while active insurance still exists, participant collection falls back to current insurance value rather than arbitrary table order.
+The protocol builds a set of active normal insurers and assigns each a weight $w_i$. Stable bailout normally uses `pcts`; crypto bailout normally uses `l_pcts`. If the relevant denominator is unusable while active insurance still exists, participant collection falls back to current insurance value rather than arbitrary table order.
 
-For insurer \(i\):
+For insurer $i$:
 
-\[
+```math
 D_i
 =
 D
 \frac{w_i}{\sum_k w_k}
-\]
+```
 
-\[
+```math
 C_i
 =
 C
 \frac{w_i}{\sum_k w_k}
-\]
+```
 
 with deterministic integer handling for the final remainder.
 
@@ -1383,19 +1383,19 @@ Otherwise, insurer capital would become protected at the exact moment its owner 
 
 A configurable portion of bailout collateral can be redirected into final-reserve insurance.
 
-If the gross collateral share for participant \(i\) is \(C_i\) and the configured cut is \(q\):
+If the gross collateral share for participant $i$ is $C_i$ and the configured cut is $q$:
 
-\[
+```math
 C_{i,\text{net}}
 =
 C_i(1-q)
-\]
+```
 
-\[
+```math
 C_{i,\text{reserve}}
 =
 C_i q
-\]
+```
 
 The cut applies to normal participants, not when the final reserve itself is the absorbing participant.
 
@@ -1662,22 +1662,22 @@ CLOAK Lending uses `fp128`, a signed 128-bit decimal fixed-point type.
 
 Conceptually, a value is stored as:
 
-\[
+```math
 x = a \times 10^{-p}
-\]
+```
 
 where:
 
-- \(a\) is a signed integer amount;
-- \(p\) is an explicit decimal precision.
+- $a$ is a signed integer amount;
+- $p$ is an explicit decimal precision.
 
 For example:
 
-\[
+```math
 123.45
 =
 12345 \times 10^{-2}
-\]
+```
 
 The implementation supports:
 
@@ -2030,11 +2030,11 @@ Assume the required borrow-time collateral ratio is 150%.
 
 The maximum VIGOR debt supported by that collateral is:
 
-\[
+```math
 \frac{20{,}000}{1.5}
 =
 13{,}333.33\ \text{VIGOR}
-\]
+```
 
 Alice borrows 10,000 VIGOR.
 
@@ -2046,11 +2046,11 @@ The protocol:
 
 Alice’s initial collateral ratio is:
 
-\[
+```math
 \frac{20{,}000}{10{,}000}
 =
 200\%
-\]
+```
 
 ### 17.2 Alice uses the market
 
@@ -2088,11 +2088,11 @@ Assume her annualized `tesprice` is 8%.
 
 For a 30-day illustration:
 
-\[
+```math
 T = \frac{30}{360} = 0.08333
-\]
+```
 
-\[
+```math
 F
 =
 10{,}000
@@ -2101,17 +2101,17 @@ F
 \right)
 \approx
 64.3\ \text{VIGOR-value}
-\]
+```
 
 If one VIG is worth 0.50 VIGOR:
 
-\[
+```math
 \text{VIG due}
 \approx
 \frac{64.3}{0.50}
 =
 128.6\ \text{VIG}
-\]
+```
 
 The contract rounds upward to the smallest VIG unit at the configured token precision—not necessarily to a whole VIG. The actual contract also charges per configured epoch, not once per month; this is only an intuitive aggregation.
 
@@ -2123,11 +2123,11 @@ Assume the bailout threshold is 110%.
 
 Required collateral is:
 
-\[
+```math
 10{,}000 \times 1.10
 =
 11{,}000\ \text{VIGOR}
-\]
+```
 
 Alice has only 10,500 VIGOR worth of collateral.
 
@@ -2217,23 +2217,23 @@ The implementation uses deterministic `fp128` arithmetic and integer asset amoun
 
 ### A.1 Asset valuation
 
-For asset \(i\):
+For asset $i$:
 
-\[
+```math
 V_i = Q_iP_i
-\]
+```
 
 Portfolio or bucket value:
 
-\[
+```math
 V = \sum_iQ_iP_i
-\]
+```
 
 VIGOR is the numeraire:
 
-\[
+```math
 P_{\text{VIGOR}} = 1
-\]
+```
 
 inside protocol accounting.
 
@@ -2241,110 +2241,110 @@ inside protocol accounting.
 
 Stable side:
 
-\[
+```math
 CR_s
 =
 \frac{V_{\text{crypto collateral}}}
 {D_{\text{VIGOR}}}
-\]
+```
 
 Crypto side:
 
-\[
+```math
 CR_c
 =
 \frac{C_{\text{VIGOR}}}
 {V_{\text{crypto debt}}}
-\]
+```
 
 ### A.3 Insolvency
 
 Stable side:
 
-\[
+```math
 V_{\text{crypto collateral}}
 \times 10{,}000
 <
 D_{\text{VIGOR}}
 \times \texttt{bailout\_cr\_bps}
-\]
+```
 
 Crypto side:
 
-\[
+```math
 C_{\text{VIGOR}}
 \times 10{,}000
 <
 V_{\text{crypto debt}}
 \times \texttt{bailoutup\_cr\_bps}
-\]
+```
 
 ### A.4 Portfolio weights
 
-\[
+```math
 w_i
 =
 \frac{V_i}{\sum_jV_j}
-\]
+```
 
 ### A.5 Portfolio variance
 
-\[
+```math
 \sigma_p^2
 =
 \sum_i w_i^2\sigma_i^2
 +
 2\sum_{i<j}w_iw_j\sigma_i\sigma_j\rho_{ij}
-\]
+```
 
-\[
+```math
 \sigma_p = \sqrt{\sigma_p^2}
-\]
+```
 
 VIGOR contributes value but zero volatility and covariance in the mixed-bucket risk helpers.
 
 ### A.6 Tail multiplier
 
-\[
+```math
 z_\alpha = \Phi^{-1}(\alpha)
-\]
+```
 
-\[
+```math
 m_{\text{tail}}
 =
 \frac{\phi(z_\alpha)}{1-\alpha}
-\]
+```
 
 ### A.7 Simplified stable stress
 
 Let:
 
-- \(\sigma_c\) be collateral portfolio volatility;
-- \(k_s\) be the global stable stress scale.
+- $\sigma_c$ be collateral portfolio volatility;
+- $k_s$ be the global stable stress scale.
 
 A simplified form of the downside stress is:
 
-\[
+```math
 s_c
 =
 1-\exp(-m_{\text{tail}}\sigma_c k_s)
-\]
+```
 
 Stressed collateral:
 
-\[
+```math
 C_{\text{stressed}}
 =
 C(1-s_c)
-\]
+```
 
 Stable payoff:
 
-\[
+```math
 L_s
 =
 \max(D_s-C_{\text{stressed}},0)
-\]
+```
 
 The implementation additionally computes a CDF term from collateralization, volatility, and the configured horizon before converting the payoff into `tesprice`.
 
@@ -2352,48 +2352,48 @@ The implementation additionally computes a CDF term from collateralization, vola
 
 Let:
 
-- \(\sigma_d\) be crypto debt portfolio volatility;
-- \(k_c\) include global crypto stress and liquidity scarcity.
+- $\sigma_d$ be crypto debt portfolio volatility;
+- $k_c$ include global crypto stress and liquidity scarcity.
 
 A simplified upside stress is:
 
-\[
+```math
 s_d
 =
 \exp(m_{\text{tail}}\sigma_d k_c)-1
-\]
+```
 
 Stressed debt:
 
-\[
+```math
 D_{\text{stressed}}
 =
 D_c(1+s_d)
-\]
+```
 
 Crypto payoff:
 
-\[
+```math
 L_c
 =
 \max(D_{\text{stressed}}-C_s,0)
-\]
+```
 
 The implementation again applies a modeled probability term and clamps the resulting `l_tesprice`.
 
 ### A.9 Liquidity scarcity
 
-For crypto borrower \(u\):
+For crypto borrower $u$:
 
-\[
+```math
 \ell_u
 =
 \sum_j
 \frac{V_{u,j}}{V_{u,\text{crypto debt}}}
 U_j
-\]
+```
 
-where \(U_j\) is token utilization.
+where $U_j$ is token utilization.
 
 The implementation uses a nonlinear liquidity adjustment based on this weighted value.
 
@@ -2401,68 +2401,68 @@ The implementation uses a nonlinear liquidity adjustment based on this weighted 
 
 Stable-side contribution:
 
-\[
+```math
 c_i
 =
 \max(S-S_{-i},0)
-\]
+```
 
-\[
+```math
 pcts_i
 =
 \frac{c_i}{\sum_kc_k}
-\]
+```
 
 Crypto-side contribution:
 
-\[
+```math
 c_i^{(c)}
 =
 \max(S_c-S_{c,-i},0)
-\]
+```
 
-\[
+```math
 l\_pcts_i
 =
 \frac{c_i^{(c)}}{\sum_kc_k^{(c)}}
-\]
+```
 
 If the relevant normalized denominator is zero while active insurance exists, current bailout and fee-distribution paths use deterministic current-insurance-value weighting as a fallback.
 
 ### A.11 Fee accrual
 
-\[
+```math
 F
 =
 D\left((1+r)^T-1\right)
-\]
+```
 
-\[
+```math
 T
 =
 \frac{\text{epoch seconds}}
 {360\times24\times60\times60}
-\]
+```
 
 Stable:
 
-\[
+```math
 F_s
 =
 D_s\left((1+\texttt{tesprice})^T-1\right)
-\]
+```
 
 Crypto:
 
-\[
+```math
 F_c
 =
 V_c\left((1+\texttt{l\_tesprice})^T-1\right)
-\]
+```
 
 ### A.12 VIG conversion
 
-\[
+```math
 \text{VIG due}
 =
 \operatorname{ceil}_{\text{VIG precision}}
@@ -2470,90 +2470,90 @@ V_c\left((1+\texttt{l\_tesprice})^T-1\right)
 \frac{F_{\text{VIGOR-value}}}
 {P_{\text{VIG in VIGOR}}}
 \right)
-\]
+```
 
 ### A.13 Savings rewards
 
-\[
+```math
 R_i
 =
 F_S
 \frac{S_i}{\sum_kS_k}
-\]
+```
 
 where:
 
-- \(F_S\) is the Savings allocation in VIG;
-- \(S_i\) is saver \(i\)’s VIGOR Savings balance.
+- $F_S$ is the Savings allocation in VIG;
+- $S_i$ is saver $i$’s VIGOR Savings balance.
 
 ### A.14 Available crypto liquidity
 
-\[
+```math
 A_j
 =
 \max(I_j-L_j,0)
-\]
+```
 
 where:
 
-- \(I_j\) is active insurer inventory;
-- \(L_j\) is live lent amount.
+- $I_j$ is active insurer inventory;
+- $L_j$ is live lent amount.
 
 ### A.15 Bailout allocation
 
-For participant weight \(w_i\):
+For participant weight $w_i$:
 
-\[
+```math
 D_i
 =
 D
 \frac{w_i}{\sum_kw_k}
-\]
+```
 
-\[
+```math
 C_i
 =
 C
 \frac{w_i}{\sum_kw_k}
-\]
+```
 
 Integer remainders are assigned deterministically so the full debt and collateral are accounted for.
 
 ### A.16 Reserve collateral cut
 
-For cut \(q\):
+For cut $q$:
 
-\[
+```math
 C_{i,\text{net}}
 =
 C_i(1-q)
-\]
+```
 
-\[
+```math
 C_{\text{reserve}}
 =
 \sum_iC_iq
-\]
+```
 
 ### A.17 Recapitalization factor
 
 A simplified stable-side recap factor is:
 
-\[
+```math
 R_s
 =
 CR_{\text{bailout}}
 +
 2\sigma_{\text{insurance,monthly}}
-\]
+```
 
 Required collateral value:
 
-\[
+```math
 C_{\text{required}}
 =
 D_{\text{remaining}}R_s
-\]
+```
 
 The crypto-side recap follows the corresponding VIGOR-collateral requirement with its own threshold and volatility buffer.
 
