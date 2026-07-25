@@ -880,7 +880,7 @@ For a portfolio with value weights $w_i$, volatilities $\sigma_i$, and correlati
 =
 \sum_i w_i^2\sigma_i^2
 +
-2\sum_{i<j}w_iw_j\sigma_i\sigma_j\rho_{ij}
+2\sum_{i\lt j}w_iw_j\sigma_i\sigma_j\rho_{ij}
 ```
 
 and:
@@ -1212,7 +1212,7 @@ A stable-debt position is insolvent when:
 
 ```math
 C_c \times 10{,}000
-<
+\lt 
 D_s \times B_s
 ```
 
@@ -1226,7 +1226,7 @@ Equivalently:
 
 ```math
 \frac{C_c}{D_s}
-<
+\lt 
 \frac{B_s}{10{,}000}
 ```
 
@@ -1236,7 +1236,7 @@ A crypto-debt position is insolvent when:
 
 ```math
 C_s \times 10{,}000
-<
+\lt 
 D_c \times B_c
 ```
 
@@ -2264,7 +2264,7 @@ Stable side:
 ```math
 V_{\text{crypto collateral}}
 \times 10{,}000
-<
+\lt 
 D_{\text{VIGOR}}
 \times \texttt{bailout\_cr\_bps}
 ```
@@ -2274,7 +2274,7 @@ Crypto side:
 ```math
 C_{\text{VIGOR}}
 \times 10{,}000
-<
+\lt 
 V_{\text{crypto debt}}
 \times \texttt{bailoutup\_cr\_bps}
 ```
@@ -2294,7 +2294,7 @@ w_i
 =
 \sum_i w_i^2\sigma_i^2
 +
-2\sum_{i<j}w_iw_j\sigma_i\sigma_j\rho_{ij}
+2\sum_{i\lt j}w_iw_j\sigma_i\sigma_j\rho_{ij}
 ```
 
 ```math
