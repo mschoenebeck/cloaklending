@@ -2465,11 +2465,10 @@ V_c\left((1+\texttt{l\_tesprice})^T-1\right)
 ```math
 \text{VIG due}
 =
-\operatorname{ceil}_{\text{VIG precision}}
-\left(
+\left\lceil
 \frac{F_{\text{VIGOR-value}}}
 {P_{\text{VIG in VIGOR}}}
-\right)
+\right\rceil_{\text{VIG precision}}
 ```
 
 ### A.13 Savings rewards
