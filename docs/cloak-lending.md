@@ -26,7 +26,7 @@ This document explains how the system works, why the incentives exist, where the
 
 > **Implementation basis**
 >
-> This guide reflects the CLOAK Lending v1 development state confirmed on July 22, 2026, including side-specific bailout selection and participation by debtor-owned active insurance. Before public release, the document should be pinned to a canonical repository commit and the configuration of the deployment it describes.
+> This guide reflects the CLOAK Lending v1 development state confirmed on August 5, 2026, including side-specific bailouts, debtor-owned active insurance, reconciled pending withdrawals, enforced per-token lending caps, and corrected lending-inventory repricing. Before public release, the document should be pinned to a canonical repository commit and the configuration of the deployment it describes.
 
 ---
 
@@ -259,7 +259,7 @@ The basic borrow-time requirement is:
 \text{required collateral ratio}
 ```
 
-Bob does not receive newly minted crypto. The borrowed asset must already exist inside active insurer capital and be available after subtracting currently lent amounts.
+Bob does not receive newly minted crypto. The borrowed asset must already exist inside active insurer capital and fit both physical availability and the token's configured lending cap.
 
 When Bob repays the crypto, the returned tokens replenish protocol-held liquidity.
 
@@ -346,22 +346,31 @@ At system level, outstanding VIGOR equals CLOAK Lending stable debt only if the 
 
 Crypto borrowing is different.
 
-The contract does not create BTC, EOS, or another borrowed asset. It tracks live active-insurer inventory:
+The contract does not create BTC, EOS, or another borrowed asset. For token $j$, physical availability is:
 
 ```math
-\text{available}_j
+A_j
 =
-\max(
-\text{active insurance}_j
--
-\text{live lent}_j,
-0
-)
+\max(I_j-L_j,0)
 ```
 
-for token $j$.
+where $I_j$ is active normal-insurer inventory and $L_j$ is live lending. The configured hard cap is:
 
-That creates a hard limit: a user cannot borrow more of a token than active insurers have made available.
+```math
+C_j
+=
+\left\lfloor I_j\frac{m_j}{10{,}000}\right\rfloor
+```
+
+where $m_j$ is `max_lends_bps`. Additional borrowable liquidity is:
+
+```math
+B_j
+=
+\min\left(A_j,\max(C_j-L_j,0)\right)
+```
+
+Existing lending at or above the cap is not unwound, but no additional borrowing is allowed until capacity returns.
 
 ### 4.5 The economic loop
 
@@ -752,21 +761,23 @@ The final reserve is intentionally excluded from this set.
 
 For each supported token, the protocol tracks:
 
-- total insurance;
-- active insurance;
+- total and active insurance;
 - live lent amount;
-- currently available amount;
-- repriced lendable and utilization measures.
+- physical availability;
+- gross repriced `lendable` inventory;
+- cap utilization.
 
-Only active normal insurer inventory counts toward live crypto borrowing.
+Only active normal-insurer inventory counts. New borrowing is limited by both physical availability and the token's `max_lends_bps` hard cap.
 
-If active insurers collectively hold 10,000 EOS and 6,000 EOS are already lent:
+If active insurers hold 10,000 EOS, 6,000 EOS are lent, and `max_lends_bps` is 9,900:
 
 ```math
-\text{available EOS} = 10{,}000 - 6{,}000 = 4{,}000
+\text{physical availability}=4{,}000,
+\qquad
+\text{cap room}=3{,}900
 ```
 
-A new borrower cannot draw more than that live amount.
+so only 3,900 EOS is additionally borrowable.
 
 ### 8.3 Insurers earn for risk and liquidity
 
@@ -799,7 +810,9 @@ During the pending period, the capital:
 
 This prevents an insurer from escaping the exact risk for which it has been paid.
 
-Any bailout cancels pending insurer withdrawal requests. The insurer can request withdrawal again later based on the post-bailout balance.
+Only one pending request may exist per owner and token symbol. If a VIG or VIGOR lifeline consumes matching insurance, the pending quantity is clamped to the remaining balance and erased at zero; a partial reduction keeps its original maturity.
+
+Any bailout cancels all pending insurer withdrawal requests. The insurer can request withdrawal again later based on the post-bailout balance.
 
 ### 8.5 The debtor can also be an insurer
 
@@ -1005,7 +1018,7 @@ L_u
 U_j
 ```
 
-where $U_j$ is the token’s utilization measure.
+where $U_j$ is `lent_pct`: live lending divided by the token's configured lending capacity, clamped to one.
 
 The more the borrower depends on scarce, heavily utilized tokens, the larger the liquidity-risk adjustment.
 
@@ -1160,7 +1173,7 @@ If the balance is insufficient during epoch finalization, the protocol tries a b
 3. during finalization only, attempt an assisted rescue:
    - move free VIGOR insurance into stable collateral;
    - if necessary, create the minimum additional VIGOR support against crypto collateral;
-   - borrow only the VIG needed for the current fee event, provided VIG is whitelisted, lendable, and available.
+   - borrow only the VIG needed for the current fee event, provided the complete amount fits both physical VIG liquidity and its configured lending cap.
 
 If the fee still cannot be paid, the shortfall enters a fee-default queue and is revalidated before bailout.
 
@@ -2393,7 +2406,7 @@ For crypto borrower $u$:
 U_j
 ```
 
-where $U_j$ is token utilization.
+where $U_j$ is `lent_pct`: live lending divided by the token's configured lending capacity, clamped to one.
 
 The implementation uses a nonlinear liquidity adjustment based on this weighted value.
 
@@ -2485,18 +2498,31 @@ where:
 - $F_S$ is the Savings allocation in VIG;
 - $S_i$ is saver $i$’s VIGOR Savings balance.
 
-### A.14 Available crypto liquidity
+### A.14 Crypto liquidity and lending capacity
+
+For token $j$:
 
 ```math
-A_j
-=
-\max(I_j-L_j,0)
+\texttt{lendable}_j=I_j
 ```
 
-where:
+```math
+A_j=\max(I_j-L_j,0)
+```
 
-- $I_j$ is active insurer inventory;
-- $L_j$ is live lent amount.
+```math
+C_j=\left\lfloor I_j\frac{m_j}{10{,}000}\right\rfloor
+```
+
+```math
+B_j=\min\left(A_j,\max(C_j-L_j,0)\right)
+```
+
+```math
+U_j=\min\left(\frac{L_j}{C_j},1\right)
+```
+
+with $U_j=0$ when $C_j=0$, where $I_j$ is gross active normal-insurer inventory, $L_j$ is live lending, and $m_j$ is `max_lends_bps`.
 
 ### A.15 Bailout allocation
 
@@ -2607,7 +2633,17 @@ The crypto-side recap follows the corresponding VIGOR-collateral requirement wit
 | Insurer withdrawals | `pending` |
 | Protocol event history | `eventlog` / archive state |
 
-### B.4 Two debt modes
+### B.4 Token-liquidity fields
+
+| Field | Meaning |
+|---|---|
+| `active_insurance` | Gross active normal-insurer inventory |
+| `live_lent` | Outstanding lending |
+| `available` | Physical unborrowed liquidity |
+| `lendable` | Repriced gross active normal-insurer inventory |
+| `lent_pct` | Utilization of configured lending capacity |
+
+### B.5 Two debt modes
 
 | Mode | Borrow action | Collateral | Debt |
 |---|---|---|---|
@@ -2651,6 +2687,7 @@ Repayment is transfer-driven rather than a separate action:
 
 - VIG token and contract;
 - VIGOR token and contract;
+- supported-token contracts and per-token `max_lends_bps` caps;
 - oracle account;
 - final reserve account;
 - optional fee account.
@@ -2719,7 +2756,7 @@ A production deployment needs:
    - VIGOR market price and depth;
    - VIG liquidity;
    - insurer concentration;
-   - token utilization;
+   - physical token liquidity and lending-cap utilization;
    - reserve health;
    - Savings exposure;
    - overdue epochs;
