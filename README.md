@@ -45,7 +45,7 @@ VIGOR collateral   ↔  Crypto borrowing
 
 Unlike a conventional lending pool, insurers do more than provide passive capital. Active insurer assets:
 
-- create live crypto borrowing capacity;
+- create live crypto borrowing capacity, subject to each token's configured hard lending cap;
 - earn risk-weighted and liquidity-weighted fee revenue;
 - inherit distressed debt and collateral during bailouts;
 - recapitalize inherited positions using their own insurance capital;
@@ -84,7 +84,7 @@ The protocol considers:
 - portfolio correlation;
 - stressed loss estimates;
 - global insurer solvency;
-- token-level borrowing utilization and scarcity;
+- token-level configured lending-cap utilization and scarcity;
 - configured minimum and maximum rate bounds.
 
 The resulting rates are stored separately for the two lending directions:
