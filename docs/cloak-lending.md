@@ -2,7 +2,7 @@
 
 *Private Credit, Dynamic Risk Pricing, and On-Chain Insurance*
 
-**Technical and Economic Guide — July 2026**
+**Technical and Economic Guide — August 2026**
 
 Here, **private credit** means credit conducted through CLOAK’s shielded privacy layer—not the corporate private-credit asset class.
 
@@ -26,7 +26,7 @@ This document explains how the system works, why the incentives exist, where the
 
 > **Implementation basis**
 >
-> This guide reflects the CLOAK Lending v1 development state confirmed on August 5, 2026, including side-specific bailouts, debtor-owned active insurance, reconciled pending withdrawals, enforced per-token lending caps, and corrected lending-inventory repricing. Before public release, the document should be pinned to a canonical repository commit and the configuration of the deployment it describes.
+> This guide reflects the CLOAK Lending v1 development state confirmed on August 6, 2026, including side-specific bailouts, debtor-owned active insurance, reconciled pending withdrawals, enforced per-token lending caps, corrected lending-inventory repricing, the active-update state freeze with guarded repricing recovery, and the complete finalization-only VIG fee-rescue waterfall. Before public release, the document should be pinned to a canonical repository commit and the configuration of the deployment it describes.
 
 ---
 
@@ -165,7 +165,7 @@ A saver deposits VIGOR into the Savings pool.
 
 In normal operation, the saver earns a proportional share of the configured Savings allocation from protocol fees. Those rewards are paid in VIG.
 
-In an extreme event, Savings is also a narrow final backstop for stable-side reserve insolvency. Savings is therefore not risk-free yield.
+A debtor's own Savings may also be moved internally into that same account's `stable_collateral` during the finalization-only VIG fee rescue. At system level, remaining Savings is still the narrow final backstop for stable-side reserve insolvency. Savings is therefore not risk-free yield or an untouchable balance while the saver also carries debt.
 
 ### 2.6 Final reserve
 
@@ -687,7 +687,7 @@ That can support the peg when protocol activity is healthy, but the effect is no
 
 ### 7.4 Savers can leave—and that matters
 
-Savings is liquid in ordinary operation. A saver can withdraw while the protocol is ready, without waiting through the active-insurer withdrawal delay. Once an epoch is overdue or an update is running, ordinary withdrawals are blocked until processing finishes.
+Savings is liquid in ordinary operation. A saver can withdraw while the protocol is ready, without waiting through the active-insurer withdrawal delay. Once an epoch is overdue, ordinary withdrawals are blocked. Before the first update `tick()`, only the narrow overdue-idle rescue transfer memos remain available; after the update starts, every external token-transfer flow is blocked until processing finishes.
 
 That creates an uncomfortable but important incentive. If stress becomes visible early enough, rational savers may leave before the backstop is needed. The pool can therefore shrink at exactly the time the system would most value it. A sustainable Savings pool needs enough fee income and confidence to compensate users for that tail risk; calling it a backstop does not guarantee the capital will still be there.
 
@@ -695,9 +695,11 @@ There is also a market-liquidity trade-off. VIGOR held in Savings is not offered
 
 ### 7.5 Savings is not risk-free
 
-Savings is also the final narrow stable-side backstop.
+Savings has two distinct risk roles.
 
-It is used only after:
+First, during epoch-finalization fee handling, a debtor's own VIGOR Savings may be moved into that same account's `stable_collateral` after available VIGOR insurance has been used and before new VIGOR support is minted. Only the exact amount required for the complete assisted rescue is moved. That amount immediately stops earning Savings rewards and is removed from the global Savings pool and its final-reserve backstop capacity.
+
+Second, at system level, remaining Savings is the final narrow stable-side backstop. That systemic use occurs only after:
 
 1. a distressed borrower has been processed;
 2. normal insurer capital has been exhausted;
@@ -810,7 +812,9 @@ During the pending period, the capital:
 
 This prevents an insurer from escaping the exact risk for which it has been paid.
 
-Only one pending request may exist per owner and token symbol. If a VIG or VIGOR lifeline consumes matching insurance, the pending quantity is clamped to the remaining balance and erased at zero; a partial reduction keeps its original maturity.
+Only one pending request may exist per owner and token symbol. If the documented fee lifeline consumes matching insurance—VIG moved into `vigfees`, VIGOR moved into `stable_collateral`, or eligible crypto moved into `collateral`—the pending quantity is clamped to the remaining balance and erased at zero; a partial reduction keeps its original maturity.
+
+Crypto insurance moved into collateral leaves the active lending inventory for that token. Exact token-liquidity totals are updated, new borrowing capacity may fall, and existing loans are not forcibly unwound. If no insurance remains, the account leaves the active insurer set.
 
 Any bailout cancels all pending insurer withdrawal requests. The insurer can request withdrawal again later based on the post-bailout balance.
 
@@ -1154,7 +1158,7 @@ The protocol rounds in its own favor when converting the economic fee into payab
 
 A borrower cannot open and close a loan inside the same epoch for free.
 
-Repayment first charges the full current epoch fee. A configurable repayment-only minimum fee also prevents tiny or zero-cost borrow-repay cycles caused by integer rounding.
+Repayment first charges the account's full current-epoch fee. If the account has both debt modes, the stable and crypto fee components are charged together; repaying either debt side settles that account-wide fee once for the fee epoch. A later repayment or epoch-finalization pass does not charge the same fee epoch again. A configurable repayment-only minimum fee also prevents tiny or zero-cost borrow-repay cycles caused by integer rounding.
 
 Repayment is all-or-nothing:
 
@@ -1162,22 +1166,36 @@ Repayment is all-or-nothing:
 - overpayment of debt is rejected rather than silently retained or refunded;
 - only after fees are settled is principal reduced.
 
+Ordinary repayment may use the current `vigfees` balance plus the existing-source VIG lifeline from VIG insurance and free VIG collateral. The finalization-only assisted auto-borrow rescue is deliberately unavailable during repayment. The current application can place an exact VIG fee-balance top-up before the principal repayment in the same atomic transaction, so either both transfers succeed or neither does.
+
 ### 10.4 VIG lifeline
 
 Borrowers maintain a VIG balance in `vigfees`.
 
-If the balance is insufficient during epoch finalization, the protocol tries a bounded rescue sequence:
+If that balance is insufficient during epoch finalization, the protocol uses the debtor's own capital through this bounded waterfall:
 
-1. move VIG already present in insurance into `vigfees`;
-2. move free VIG from collateral, but only if doing so does not break collateral requirements;
-3. during finalization only, attempt an assisted rescue:
-   - move free VIGOR insurance into stable collateral;
-   - if necessary, create the minimum additional VIGOR support against crypto collateral;
-   - borrow only the VIG needed for the current fee event, provided the complete amount fits both physical VIG liquidity and its configured lending cap.
+1. charge available VIG already present in `vigfees`;
+2. move only the required VIG from the user's `insurance` into `vigfees`;
+3. move only free or excess VIG from `collateral`, without breaking the current collateral requirement;
+4. if VIG is whitelisted, lendable, and fully borrowable within both physical liquidity and `max_lends_bps`, attempt the finalization-only assisted leg:
+   1. count existing `stable_collateral`;
+   2. move only the required VIGOR from the user's `insurance` into `stable_collateral`;
+   3. move only the remaining required VIGOR from the user's `savings` into `stable_collateral`;
+   4. if residual VIGOR support must be minted, count existing crypto `collateral` first;
+   5. if that collateral is insufficient, move the minimum eligible whitelisted non-VIG/non-VIGOR crypto from the user's `insurance` into `collateral`, in deterministic bucket order;
+   6. mint only the remaining VIGOR support;
+   7. borrow only the exact missing VIG for the current fee event into `vigfees`.
 
-If the fee still cannot be paid, the shortfall enters a fee-default queue and is revalidated before bailout.
+The assisted leg is all-or-nothing. The complete staged account must remain solvent on both debt sides; otherwise no assisted bucket move, VIGOR issuance, or VIG debt is retained and normal fee-default processing continues. Because the rescue is finalization-only, gives no proceeds to the user, and creates only the exact fee shortfall, its VIG debt may be smaller than the ordinary public crypto-loan minimum; the normal user-originated borrow minimum remains unchanged. Required oracle validation remains fail-closed, so missing, stale, or invalid oracle data aborts and rolls back the current action rather than being treated as an optional rescue miss.
 
-The protocol does not trigger a bailout merely because an earlier scan saw a shortfall. It gives fresh balances and rescue transfers a chance to cure the problem.
+Internal bucket moves preserve exact accounting:
+
+- VIGOR removed from Savings also reduces global Savings, stops earning Savings rewards, and is no longer available to the final-reserve Savings backstop;
+- matching pending insurance withdrawals are reconciled;
+- crypto moved from insurance to collateral updates total insurance, active insurance, total collateral, and physical availability for that token;
+- reduced insurance may lower future borrowing capacity, but existing loans are not unwound.
+
+If the fee still cannot be paid, the shortfall enters a fee-default queue and is revalidated before bailout. Because external transactions are frozen after the update starts, this later retry exists for changes made by the internal finalize pipeline—not for a user rescue transfer inserted between fee stages. A bailout starts only if a shortfall still remains after that live revalidation.
 
 ### 10.5 Where fees go
 
@@ -1272,15 +1290,11 @@ A fee-default bailout is therefore not evidence that the selected side already f
 
 ### 11.3 Live revalidation
 
-An account can improve its position after an earlier scan by:
+Before the first update `tick()`, an overdue account still has the narrow rescue window described earlier: it may repay, add crypto or VIGOR collateral, or add VIG through the five accepted transfer memos. Once `UPDATE_SCAN` starts, external mutation is frozen.
 
-- repaying debt;
-- adding collateral;
-- adding VIG to cover fees.
+Live revalidation remains necessary because the staged internal pipeline can still change an account after an earlier scan—for example through lifelines, bailout allocation, or recapitalization. Before an ordinary bailout starts, the protocol therefore rechecks current contract state. A resolved or healthy side is not processed merely because an earlier stage had classified it as insolvent.
 
-Before an ordinary bailout starts, the protocol rechecks fresh live state. A resolved or healthy side is not processed based on stale detection.
-
-Fee defaults are also revalidated before bailout.
+Fee defaults are likewise revalidated after internal collection and rescue attempts before any bailout starts.
 
 ### 11.4 Only the selected side is resolved
 
@@ -1606,9 +1620,20 @@ A healthy protocol launch therefore needs more than deployed contracts. It needs
 
 ### 13.6 Epoch liveness and recovery
 
-`tick()` is permissionless, but permissionless does not mean automatic. Once an epoch is due, ordinary actions are blocked except for narrow rescue transfers, and completing one epoch may require several tick calls across persisted stages.
+`tick()` is permissionless, but permissionless does not mean automatic. Completing one overdue epoch may require several tick calls across persisted stages.
 
-In practice, a deployment needs reliable automation or operators willing to keep calling `tick()`, even when fees are low or markets are stressed. The current v1 failure model is intentionally harsh: if epoch processing wedges badly, the protocol can halt, and there is no general administrative recovery path.
+The external-action boundary is deliberately strict:
+
+- while the epoch is overdue but `update_step` is still idle, normal actions are blocked but five rescue transfer memos remain available: `repay`, `repaycrypto`, `collateral`, `stablecol`, and `vigfees`;
+- the first accepted update `tick()` starts `UPDATE_SCAN`;
+- from `UPDATE_SCAN` through `UPDATE_FINALIZE`, every external token-transfer entry flow and every normal economic action is rejected;
+- only `tick()` may progress the ordinary state machine until the epoch completes.
+
+This freeze prevents a repayment or balance top-up from changing live user rows while persisted repricing scratch still describes an older state.
+
+In practice, a deployment needs reliable automation or operators willing to keep calling `tick()`, even when fees are low or markets are stressed. There is no general administrative rollback, balance repair, cursor skip, or economic-state override.
+
+A narrow self-authorized maintenance action, `resetrepr()`, may remove only persisted repricing scratch when the contract is at a guarded top-level repricing barrier during `UPDATE_FINALIZE`, a reprice state exists, and neither bailout nor fee scratch exists. It does not change users, balances, debts, fee totals, cursors, the finalize step, or the epoch. The next normal `tick()` recomputes that same repricing barrier from current live rows. Any other wedged state may still require a contract upgrade.
 
 ### 13.7 Administrative trust
 
@@ -1751,6 +1776,8 @@ CLOAK Lending therefore processes time-based epochs:
 7. complete the epoch and distribute rewards.
 
 The process is chunked and resumable. A tick does bounded work in one persisted stage rather than attempting the entire system update in one transaction.
+
+Persisted work also requires stable inputs. Once `UPDATE_SCAN` begins, the contract freezes external user-driven lending mutations through epoch completion so a later stage cannot combine old repricing scratch with newly changed debt or balances. The narrowly guarded `resetrepr()` action can discard only recomputable top-level repricing scratch; it is not a general state override.
 
 This is essential on Antelope/EOSIO WASM, where a mathematically correct monolithic function can still fail because of execution limits or WASM stack behavior.
 
@@ -1956,11 +1983,15 @@ If insurer participation is too small:
 - normal insurers can be exhausted quickly;
 - the final reserve is reached more often.
 
+A debtor who is also an insurer may consume the minimum necessary portion of its own VIG, VIGOR, or eligible crypto insurance through the fee-rescue waterfall before default. That is preferable to socializing an avoidable fee default, but it can reduce active inventory and future lending capacity.
+
 ### 16.6 Savings risk
 
-Savings users earn VIG because they accept a contingent loss role.
+Savings users earn VIG because they accept contingent uses of their VIGOR.
 
-In a severe stable-side reserve failure, Savings VIGOR can be consumed and replaced by distressed collateral exposure. The collateral may later recover—or continue falling.
+A saver who is also a debtor may have the exact required amount of personal Savings moved into that account's `stable_collateral` during the finalization-only VIG fee rescue. The moved amount stops earning Savings rewards and cannot be withdrawn while it remains required as collateral.
+
+In a severe stable-side reserve failure, remaining Savings VIGOR can be consumed and replaced by distressed collateral exposure. The collateral may later recover—or continue falling.
 
 Savings also has run risk. Ordinary withdrawals are not delayed like active-insurer withdrawals, so informed savers may exit as conditions worsen. The remaining pool can become smaller and more concentrated just before a backstop event.
 
@@ -1973,9 +2004,10 @@ The protocol therefore depends on:
 - VIG market liquidity;
 - a reliable VIG oracle;
 - borrowers being able to obtain VIG;
-- sufficient active insurer inventory if the assisted VIG lifeline needs to borrow it.
+- sufficient active VIG insurer inventory, physical liquidity, and lending-cap room when the assisted lifeline needs to borrow VIG;
+- enough debtor-owned support—stable collateral, VIGOR insurance, Savings, crypto collateral, or eligible crypto insurance—to keep the resulting rescue debts solvent.
 
-A sharp VIG price movement changes the number of VIG units required for a given VIGOR-value fee.
+A sharp VIG price movement changes the number of VIG units required for a given VIGOR-value fee. The lifeline can avoid an otherwise unnecessary fee default, but it may convert Savings or insurance into collateral and can create exact additional VIG debt and, where necessary, residual VIGOR debt.
 
 ### 16.8 Smart-contract and execution risk
 
@@ -1994,7 +2026,7 @@ Real WASM execution must be tested, not only native code. The deterministic math
 
 ### 16.9 Epoch-liveness and recovery risk
 
-When an epoch becomes due, most ordinary actions stop until staged processing completes. Permissionless ticking helps, but someone still has to submit the required transactions, and a wedged state machine can halt the protocol. The current v1 design has no general administrative recovery path.
+When an epoch becomes due, ordinary actions stop except for the five overdue-idle rescue transfer memos available before the first update tick. Once processing starts, all external economic mutations remain frozen until completion. Permissionless ticking helps, but someone still has to submit the required transactions, and a wedged state machine can halt the protocol. `resetrepr()` can discard only narrowly guarded recomputable repricing scratch; the current v1 design still has no general administrative recovery path.
 
 ### 16.10 Administrative and upgrade risk
 
@@ -2681,6 +2713,20 @@ Repayment is transfer-driven rather than a separate action:
 | `savings` | Deposit VIGOR Savings |
 | `vigfees` | Deposit VIG fee balance |
 
+When an epoch is overdue but the update is still idle, only `repay`, `repaycrypto`, `collateral`, `stablecol`, and `vigfees` remain accepted as rescue transfers. Once the first update `tick()` starts, all transfer memos are rejected until epoch completion.
+
+Relevant administrative and maintenance actions include:
+
+| Action | Purpose |
+|---|---|
+| `setconfig` | Update validated global configuration |
+| `addtoken` | Add a new supported-token configuration |
+| `setmaxlends` | Change a token's hard lending cap without replacing the token row |
+| `deltoken` | Remove an eligible unused supported token |
+| `resetrepr` | Remove only guarded stale repricing scratch; contract-self authorization only |
+
+`resetrepr` is not a balance-repair or rollback action. It cannot change economic state and is valid only at the documented top-level repricing barriers.
+
 ### C.2 Important configuration groups
 
 #### Tokens and accounts
@@ -2742,7 +2788,7 @@ A production deployment needs:
    Spot prices must be published reliably and transformed into bounded volatility and correlation history.
 
 5. **Tick operations and recovery planning**
-   Permissionless callers or automation must advance overdue epochs. Operators also need monitoring and a documented response for stalled processing, because v1 has no general administrative recovery path.
+   Permissionless callers or automation must advance overdue epochs. Operators should distinguish the overdue-idle rescue window from the active-update freeze, monitor persisted stage and scratch state, and maintain a documented procedure for the narrow `resetrepr()` recovery. Other stalled processing still has no general administrative recovery path.
 
 6. **Insurer capital**
    Crypto borrowing and normal bailout absorption depend on active insurer participation.
@@ -2773,7 +2819,7 @@ A production deployment needs:
 
 - `cloaklending.hpp` — contract declarations, tables, configuration, actions, and staged state used for this guide.
 - `cloaklending.cpp` — economic logic, risk engine, token flows, fee distribution, bailout, reserve, and Savings implementation used for this guide.
-- CLOAK Lending project brief and the accepted July 2026 development-thread updates — protocol-law and implementation-state context, including the final side-specific bailout and debtor-insurance participation behavior.
+- CLOAK Lending project brief and the accepted August 2026 development-thread updates — protocol-law and implementation-state context, including side-specific bailout behavior, debtor-owned insurer participation, active-update immutability, guarded repricing recovery, and the complete assisted VIG fee-rescue waterfall.
 - `fp128.md` — deterministic decimal fixed-point arithmetic used by the lending protocol.
 
 A public release should replace this development-state description with a repository URL, immutable commit hash, release tag, deployed contract accounts, and configuration snapshot.
